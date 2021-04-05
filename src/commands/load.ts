@@ -81,10 +81,10 @@ export default class Load extends Command {
         }
       }
 
-      environmentArg = environmentArg ?? args.environment;
-      resourcesFlags = resourcesFlags ?? flags.resources;
-      includesFlag = includesFlag ?? flags.include;
-      destinationFlag = destinationFlag ?? flags.destination;
+      environmentArg = args.environment ?? environmentArg;
+      resourcesFlags = flags.resources ??resourcesFlags;
+      includesFlag = flags.include ?? includesFlag;
+      destinationFlag = flags.destination ?? destinationFlag;
 
       if (!environmentArg) {
         throw new Error('No environment defined and no local config file found');
