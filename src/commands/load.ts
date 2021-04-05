@@ -9,12 +9,12 @@ import FileParser from '../parsers/file.parser';
 export default class Load extends Command {
   static description = 'Loads an environment';
 
-  static examples = ['$ enver load dev'];
+  static examples = ['$ cliver load', '$ cliver load dev', '$ cliver load dev -r database -i public_api:key'];
 
   static args = [
     {
       name: 'environment',
-      required: true,
+      required: false,
       description: 'Environment that should be loaded',
     },
   ];
@@ -29,34 +29,109 @@ export default class Load extends Command {
     file: flags.string({
       char: 'f',
       description: 'File that contains environment config',
-      default: '.envrc'
+      default: '.envrc',
     }),
 
     destination: flags.string({
       char: 'd',
-      description: 'Export config file destination',
-      default: '.env'
-    })
+      description: 'Environment file destination',
+      default: '.env',
+    }),
+
+    include: flags.string({
+      char: 'i',
+      description: 'Resource that should be included in environment',
+      multiple: true,
+    }),
   };
 
   async run() {
     try {
       const { args, flags } = this.parse(Load);
-      const environmentArg = args.environment;
-      const resourcesFlags = flags.resources;
-      const fileFlag = flags.file;
-      const destinationFlag = flags.destination;
+      
+      let fileFlag = flags.file;
+      let environmentArg = undefined;
+      let resourcesFlags = undefined;
+      let includesFlag = undefined;
+      let destinationFlag = undefined;
+
+      const configFile = FileParser.loadConfigFile(fileFlag);
+
+      if (configFile.command && configFile.command.load) {
+        const loadConfigs = configFile.command.load;
+        
+        if (loadConfigs.environment) {
+          environmentArg = loadConfigs.environment;
+        }
+
+        if (loadConfigs.resources) {
+          resourcesFlags = loadConfigs.resources;
+        }
+
+        if (loadConfigs.include) {
+          includesFlag = loadConfigs.include;
+        }
+
+        if (loadConfigs.file) {
+          fileFlag = loadConfigs.file;
+        }
+
+        if (loadConfigs.destination) {
+          destinationFlag = loadConfigs.destination;
+        }
+      }
+
+      environmentArg = environmentArg ?? args.environment;
+      resourcesFlags = resourcesFlags ?? flags.resources;
+      includesFlag = includesFlag ?? flags.include;
+      destinationFlag = destinationFlag ?? flags.destination;
+
+      if (!environmentArg) {
+        throw new Error('No environment defined and no local config file found');
+      }
 
       let variables: EnvironmentVariable[] = [];
 
       variables.push(...this.loadEnvironments([environmentArg, '*'], fileFlag));
-      variables.push(...this.loadResources(resourcesFlags, fileFlag));
+      let resourcesToLoad: string[] = [];
+
+      if (resourcesFlags) {
+        resourcesToLoad = resourcesToLoad.concat(resourcesFlags);
+      }
+
+      if (includesFlag) {
+        resourcesToLoad = resourcesToLoad.concat(includesFlag);
+      }
+
+      if (resourcesToLoad.length > 0) {
+        variables.push(
+          ...this.loadResources(
+            this.removeDuplicatesFromArray(resourcesToLoad),
+            fileFlag,
+          ),
+        );
+      }
+
       variables = VariableParser.replaceTemplateVariables(variables);
 
       const fileLines: string[] = [];
 
       for (const variable of variables) {
-        if (!variable.hide) {
+        if (!variable.hide && !variable.includeOnly) {
+          if (
+            !includesFlag || !includesFlag
+              .map((include) => `resource:${include}`)
+              .includes(variable.origin)
+          ) {
+            fileLines.push(`${variable.key}=${variable.value}`);
+          }
+        } else if (
+          includesFlag &&
+          variable.includeOnly &&
+          includesFlag
+            .map((include) => `resource:${include}`)
+            .includes(variable.origin)
+        ) {
           fileLines.push(`${variable.key}=${variable.value}`);
         }
       }
@@ -67,14 +142,17 @@ export default class Load extends Command {
     }
   }
 
-  private loadEnvironments(environmentsKeys: string[], file: string): EnvironmentVariable[] {
+  private loadEnvironments(
+    environmentsKeys: string[],
+    file: string,
+  ): EnvironmentVariable[] {
     const loadedEnvironments: Environment[] = [];
     const variables: EnvironmentVariable[] = [];
 
     for (const environmentKey of environmentsKeys) {
       const loadedEnvironment = EnvironmentParser.parseEnvironment(
         environmentKey,
-        file
+        file,
       );
 
       if (loadedEnvironment) {
@@ -83,9 +161,13 @@ export default class Load extends Command {
     }
 
     for (const environment of loadedEnvironments) {
-      Object.keys(environment).forEach((variable) => {
+      Object.keys(environment.variables).forEach((variable) => {
         variables.push(
-          VariableParser.parseVariable(variable, environment[variable]),
+          VariableParser.parseVariable(
+            variable,
+            environment.variables[variable],
+            `environment:${environment.title}`,
+          ),
         );
       });
     }
@@ -93,7 +175,10 @@ export default class Load extends Command {
     return variables;
   }
 
-  private loadResources(resourcesKeys: string[], file: string): EnvironmentVariable[] {
+  private loadResources(
+    resourcesKeys: string[],
+    file: string,
+  ): EnvironmentVariable[] {
     const loadedResources: Environment[] = [];
     const variables: EnvironmentVariable[] = [];
 
@@ -106,13 +191,29 @@ export default class Load extends Command {
     }
 
     for (const environment of loadedResources) {
-      Object.keys(environment).forEach((variable) => {
+      Object.keys(environment.variables).forEach((variable) => {
         variables.push(
-          VariableParser.parseVariable(variable, environment[variable]),
+          VariableParser.parseVariable(
+            variable,
+            environment.variables[variable],
+            `resource:${environment.title}`,
+          ),
         );
       });
     }
 
     return variables;
+  }
+
+  private removeDuplicatesFromArray(array: string[]): string[] {
+    var newArray = [];
+
+    for (var i = 0; i < array.length; i++) {
+      if (newArray.indexOf(array[i]) == -1) {
+        newArray.push(array[i]);
+      }
+    }
+
+    return newArray;
   }
 }

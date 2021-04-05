@@ -1,3 +1,4 @@
 export default class Environment {
-  [key: string]: string;
+  title!: string;
+  variables!: { [key: string]: string };
 }

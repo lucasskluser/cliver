@@ -17,12 +17,23 @@ export default class EnvironmentVariable {
   /**
    * Indica se a variável é apenas leitura (!)
    */
-  readonly!: boolean;
+  readOnly!: boolean;
+
+  /**
+   * Indica se a variável deve ser apenas inclusão
+   */
+  includeOnly!: boolean;
+
+  /**
+   * Variable origin (environment or resource name)
+   */
+  origin!: string;
 
   constructor() {
     Object.assign(this, {
       hide: false,
-      readonly: false
+      readOnly: false,
+      includeOnly: false,
     });
   }
 }

@@ -1,12 +1,12 @@
-enver
+cliver
 =====
 
 The environment management CLI
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/enver.svg)](https://npmjs.org/package/enver)
-[![Downloads/week](https://img.shields.io/npm/dw/enver.svg)](https://npmjs.org/package/enver)
-[![License](https://img.shields.io/npm/l/enver.svg)](https://github.com/lucasskluser/enver/blob/master/package.json)
+[![Version](https://img.shields.io/npm/v/cliver.svg)](https://npmjs.org/package/cliver)
+[![Downloads/week](https://img.shields.io/npm/dw/cliver.svg)](https://npmjs.org/package/cliver)
+[![License](https://img.shields.io/npm/l/cliver.svg)](https://github.com/lucasskluser/cliver/blob/master/package.json)
 
 <!-- toc -->
 * [Usage](#usage)
@@ -15,49 +15,29 @@ The environment management CLI
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g enver
-$ enver COMMAND
+$ npm install -g @cliver/cli
+$ cliver COMMAND
 running command...
-$ enver (-v|--version|version)
-enver/1.0.0 win32-x64 node-v14.12.0
-$ enver --help [COMMAND]
+$ cliver (-v|--version|version)
+@cliver/cli/0.0.2-alpha win32-x64 node-v14.12.0
+$ cliver --help [COMMAND]
 USAGE
-  $ enver COMMAND
+  $ cliver COMMAND
 ...
 ```
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`enver hello [FILE]`](#enver-hello-file)
-* [`enver help [COMMAND]`](#enver-help-command)
+* [`cliver help [COMMAND]`](#cliver-help-command)
+* [`cliver load [ENVIRONMENT]`](#cliver-load-environment)
 
-## `enver hello [FILE]`
+## `cliver help [COMMAND]`
 
-describe the command here
-
-```
-USAGE
-  $ enver hello [FILE]
-
-OPTIONS
-  -f, --force
-  -h, --help       show CLI help
-  -n, --name=name  name to print
-
-EXAMPLE
-  $ enver hello
-  hello world from ./src/hello.ts!
-```
-
-_See code: [src/commands/hello.ts](https://github.com/lucasskluser/enver/blob/v1.0.0/src/commands/hello.ts)_
-
-## `enver help [COMMAND]`
-
-display help for enver
+display help for cliver
 
 ```
 USAGE
-  $ enver help [COMMAND]
+  $ cliver help [COMMAND]
 
 ARGUMENTS
   COMMAND  command to show help for
@@ -67,4 +47,29 @@ OPTIONS
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v3.2.2/src/commands/help.ts)_
+
+## `cliver load [ENVIRONMENT]`
+
+Loads an environment
+
+```
+USAGE
+  $ cliver load [ENVIRONMENT]
+
+ARGUMENTS
+  ENVIRONMENT  Environment that should be loaded
+
+OPTIONS
+  -d, --destination=destination  [default: .env] Environment file destination
+  -f, --file=file                [default: .envrc] File that contains environment config
+  -i, --include=include          Resource that should be included in environment
+  -r, --resources=resources      Resource that should be loaded
+
+EXAMPLES
+  $ cliver load
+  $ cliver load dev
+  $ cliver load dev -r database -i public_api:key
+```
+
+_See code: [src/commands/load.ts](https://github.com/lucasskluser/cliver/blob/v0.0.2-alpha/src/commands/load.ts)_
 <!-- commandsstop -->

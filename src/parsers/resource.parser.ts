@@ -2,7 +2,10 @@ import Environment from '../config-types/environment.type';
 import FileParser from './file.parser';
 
 export default class ResourceParser {
-  static parseResource(resourceName: string, file: string): Environment | undefined {
+  static parseResource(
+    resourceName: string,
+    file: string,
+  ): Environment | undefined {
     const configFile = FileParser.loadConfigFile(file);
     const resources = configFile.resources;
 
@@ -12,11 +15,38 @@ export default class ResourceParser {
 
     let foundedResource: Environment | undefined = undefined;
 
-    Object.keys(resources).forEach((globalResourceKey) => {
-      const globalResourceKeys = globalResourceKey.split('|');
+    Object.keys(resources).forEach((resourceKey) => {
+      let variableName: string | undefined = undefined;
+      const resourceKeys = resourceKey.split('|');
 
-      if (globalResourceKey === resourceName || globalResourceKeys.includes(resourceName)) {
-        return foundedResource = resources[globalResourceKey];
+      if (resourceName.includes(':')) {
+        variableName = resourceName.split(':')[1];
+        resourceName = resourceName.split(':')[0];
+      }
+
+      if (resourceKey === resourceName || resourceKeys.includes(resourceName)) {
+        if (variableName) {
+          const resourceVariables = resources[resourceKey];
+
+          Object.keys(resourceVariables).forEach((variable) => {
+            if (variable !== variableName) {
+              delete resourceVariables[variable];
+            } else {
+              resourceVariables[variable.replace(/([@#$])/gi, '')] = resourceVariables[variable]
+              delete resourceVariables[variable];
+            }
+          });
+
+          return (foundedResource = {
+            title: resourceKey,
+            variables: { ...resourceVariables },
+          });
+        }
+
+        return (foundedResource = {
+          title: resourceKey,
+          variables: { ...resources[resourceKey] },
+        });
       }
     });
 

@@ -4,6 +4,7 @@ export default class VariableParser {
   static parseVariable(
     variableName: string,
     variableValue: string,
+    variableOrigin: string,
   ): EnvironmentVariable {
     const variable: EnvironmentVariable = new EnvironmentVariable();
 
@@ -12,15 +13,21 @@ export default class VariableParser {
       variable.hide = true;
     }
 
-    // Readonly annotation
+    // Read only annotation
     if (variableName.startsWith('#')) {
-      variable.readonly = true;
+      variable.readOnly = true;
+    }
+
+    // Include only annotation
+    if (variableName.startsWith('$')) {
+      variable.includeOnly = true;
     }
 
     const EMPTY_STRING = '';
 
-    variable.key = variableName.replace(/([@#])/gi, EMPTY_STRING);
+    variable.key = variableName.replace(/([@#$])/gi, EMPTY_STRING);
     variable.value = variableValue;
+    variable.origin = variableOrigin;
 
     return variable;
   }
@@ -28,40 +35,44 @@ export default class VariableParser {
   static replaceTemplateVariables(
     variables: EnvironmentVariable[],
   ): EnvironmentVariable[] {
-    let templatesFounds: number = 0;
+    const MAX_LOOP = 5000;
+    let loopCount = 0;
 
     do {
       for (const variable of variables) {
-        if (!variable.readonly) {
+        if (!variable.readOnly) {
           const replaceRegex = RegExp(/(?<={{)([^{}][a-zA-Z_0-9-]+)(?=}})/gi);
           const variablesToReplace = variable.value.match(replaceRegex);
 
           if (variablesToReplace) {
-            templatesFounds += variablesToReplace.length;
-
             for (const variableToReplace of variablesToReplace) {
-              const foundedVariable = variables.find(
+              const foundedVariables = variables.filter(
                 (v) => v.key === variableToReplace,
               );
 
-              if (foundedVariable) {
-                variable.value = variable.value.replace(
-                  `{{${variableToReplace}}}`,
-                  foundedVariable.value,
+              if (foundedVariables && foundedVariables.length > 0) {
+                const foundedVariableSameOrigin = foundedVariables.find(
+                  v => v.origin === variable.origin
                 );
 
-                templatesFounds--;
+                variable.value = variable.value.replace(
+                  `{{${variableToReplace}}}`,
+                  foundedVariableSameOrigin?.value ?? foundedVariables[0].value,
+                );
               }
             }
           }
         }
       }
+
+      loopCount++;
     } while (
       variables.find(
         (variable) =>
           variable.value.match(/(?<={{)([^{}][a-zA-Z_0-9-]+)(?=}})/gi) &&
-          !variable.readonly,
-      )
+          !variable.readOnly,
+      ) &&
+      loopCount <= MAX_LOOP
     );
 
     return variables;

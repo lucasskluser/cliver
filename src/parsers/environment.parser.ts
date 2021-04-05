@@ -2,7 +2,10 @@ import Environment from '../config-types/environment.type';
 import FileParser from './file.parser';
 
 export default class EnvironmentParser {
-  static parseEnvironment(environment: string, file: string): Environment | undefined {
+  static parseEnvironment(
+    environment: string,
+    file: string,
+  ): Environment | undefined {
     const configFile = FileParser.loadConfigFile(file);
     let foundedEnvironment: Environment | undefined = undefined;
 
@@ -11,7 +14,10 @@ export default class EnvironmentParser {
 
       for (const key of environmentKeys) {
         if (key === environment) {
-          return (foundedEnvironment = configFile.environments[environmentKey]);
+          return (foundedEnvironment = {
+            title: environmentKey,
+            variables: { ...configFile.environments[environmentKey] },
+          });
         }
       }
     });
